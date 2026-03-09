@@ -40,6 +40,11 @@ class FunctionBackend:
         """
         tool_args = self._extract_tool_args()
 
+        test_mode = tool_args.get("test_mode", False)
+        if test_mode:
+            logger.info("[TEST MODE] Using bundled test files...")
+            return self._run_test_mode(tool_args)
+
         file_uuids = tool_args.get("file_uuids", [])
         if not file_uuids:
             raise ValueError("Missing required parameter: file_uuids")
@@ -107,6 +112,88 @@ class FunctionBackend:
                 f"Conciliación completada exitosamente.\n\n"
                 f"{stats_msg}\n\n"
                 f"Descarga el reporte: {file_url}"
+            )
+
+        finally:
+            shutil.rmtree(ventas_dir, ignore_errors=True)
+            shutil.rmtree(pagos_dir, ignore_errors=True)
+
+    def _run_test_mode(self, tool_args: Dict[str, Any]) -> str:
+        """Run reconciliation using bundled test files from src/test_data/."""
+        fuzzy_threshold = int(tool_args.get("fuzzy_threshold", 85))
+        tolerance = float(tool_args.get("tolerance", 1000))
+
+        # Locate test data: Lambda deploys to /var/task/, local dev uses relative path
+        task_root = os.environ.get("LAMBDA_TASK_ROOT", "")
+        if task_root:
+            test_data_dir = os.path.join(task_root, "test_data")
+        else:
+            test_data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_data")
+
+        if not os.path.isdir(test_data_dir):
+            raise FileNotFoundError(f"Test data directory not found: {test_data_dir}")
+
+        ventas_dir = "/tmp/ventas"
+        pagos_dir = "/tmp/pagos"
+
+        try:
+            shutil.rmtree(ventas_dir, ignore_errors=True)
+            shutil.rmtree(pagos_dir, ignore_errors=True)
+            os.makedirs(ventas_dir, exist_ok=True)
+            os.makedirs(pagos_dir, exist_ok=True)
+
+            # Classify bundled test files
+            for fname in os.listdir(test_data_dir):
+                if not fname.endswith(".xlsx"):
+                    continue
+                src_path = os.path.join(test_data_dir, fname)
+                name_upper = fname.upper()
+                if "COMISIONES" in name_upper:
+                    dest = os.path.join(pagos_dir, fname)
+                else:
+                    dest = os.path.join(ventas_dir, fname)
+                shutil.copy2(src_path, dest)
+                logger.info(f"  [TEST] Copied: {fname} -> {dest}")
+
+            # Find pagos file
+            pagos_files = os.listdir(pagos_dir)
+            if not pagos_files:
+                raise ValueError("No se encontró archivo de comisiones en test_data/")
+            pagos_file = os.path.join(pagos_dir, pagos_files[0])
+
+            # Check for credit file
+            credito_file = None
+            for f in os.listdir(ventas_dir):
+                if "CREDITO" in f.upper():
+                    credito_file = os.path.join(ventas_dir, f)
+                    break
+
+            config = ConciliationConfig(
+                ventas_dir=ventas_dir,
+                pagos_file=pagos_file,
+                output_dir="/tmp",
+                credito_file=credito_file,
+                fuzzy_threshold=fuzzy_threshold,
+                tolerance=tolerance,
+            )
+
+            result = run(config)
+
+            if result["status"] != "ok":
+                raise Exception(result.get("error", "Reconciliation failed"))
+
+            summary = result["result"]["summary"]
+            stats_msg = (
+                f"Total vehículos: {summary['total_vehiculos']}, "
+                f"Con bonos: {summary['vehiculos_con_bonos']}, "
+                f"Con pago: {summary['vehiculos_con_pago']}, "
+                f"Cobertura: {summary['pct_cobertura']}, "
+                f"Diferencia: ${summary['monto_diferencia']:,.0f}"
+            )
+
+            return (
+                f"[TEST MODE - no upload] Conciliación completada exitosamente.\n\n"
+                f"{stats_msg}"
             )
 
         finally:

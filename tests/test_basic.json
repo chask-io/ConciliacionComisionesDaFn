@@ -1,40 +1,24 @@
 {
   "function_name": "ConciliacionComisionesDaFn",
   "args": {
-    "file_uuids": ["test-ventas-uuid-001", "test-pagos-uuid-001"],
-    "fuzzy_threshold": 85,
-    "tolerance": 1000
+    "test_mode": true
   },
   "widget_params": {},
-  "prompt": "Ejecuta la conciliación de comisiones con los archivos adjuntos",
+  "prompt": "Ejecuta la conciliación de comisiones en modo test",
   "event_type": "function_call",
   "extra_params": {
     "tool_calls": [
       {
-        "id": "test-tool-call-001",
+        "id": "test-001",
         "name": "ConciliacionComisionesDaFn",
         "args": {
-          "file_uuids": ["test-ventas-uuid-001", "test-pagos-uuid-001"],
-          "fuzzy_threshold": 85,
-          "tolerance": 1000
+          "test_mode": true
         }
       }
     ]
   },
-  "files": [
-    {
-      "file_uuid": "test-ventas-uuid-001",
-      "file_name": "Ventas Enero 2025.xlsx",
-      "file_url": "file://test_files/Ventas Enero 2025.xlsx"
-    },
-    {
-      "file_uuid": "test-pagos-uuid-001",
-      "file_name": "COMISIONES 2025 - DANIEL ACHONDO.xlsx",
-      "file_url": "file://test_files/COMISIONES 2025 - DANIEL ACHONDO.xlsx"
-    }
-  ],
   "metadata": {
-    "description": "Test conciliation with Ventas Enero 2025 and Comisiones file",
+    "description": "Test conciliation with bundled test data (test_mode)",
     "expected_status": "success"
   }
 }

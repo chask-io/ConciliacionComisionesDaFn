@@ -33,6 +33,10 @@ function:
         type: number
         description: Tolerancia en pesos para considerar pago completo (default 1000)
         default: 1000
+      - name: test_mode
+        type: boolean
+        description: Run internal self-test with bundled test data
+        default: false
 
   widget:
     enabled: false
