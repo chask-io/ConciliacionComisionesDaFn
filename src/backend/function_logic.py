@@ -63,8 +63,7 @@ class FunctionBackend:
             os.makedirs(pagos_dir, exist_ok=True)
 
             # Download files from session
-            session_uuid = str(self.orchestration_event.orchestration_session_uuid)
-            self._download_files(session_uuid, file_uuids, ventas_dir, pagos_dir)
+            self._download_files(file_uuids, ventas_dir, pagos_dir)
 
             # Find the pagos file
             pagos_files = os.listdir(pagos_dir)
@@ -96,7 +95,7 @@ class FunctionBackend:
 
             # Upload result Excel
             output_file = result["result"]["output_file"]
-            file_url = self._upload_result(session_uuid, output_file)
+            file_url = self._upload_result(output_file)
 
             # Build summary
             summary = result["result"]["summary"]
@@ -200,12 +199,13 @@ class FunctionBackend:
             shutil.rmtree(ventas_dir, ignore_errors=True)
             shutil.rmtree(pagos_dir, ignore_errors=True)
 
-    def _download_files(self, session_uuid: str, file_uuids: list,
+    def _download_files(self, file_uuids: list,
                         ventas_dir: str, pagos_dir: str):
         """Download and classify files from the session."""
-        response = orchestrator_api_manager.call(
+        response = files_api_manager.call(
             "get_all_files_for_session",
-            session_uuid=session_uuid,
+            orchestration_session_uuid=self.orchestration_event.orchestration_session_uuid,
+            internal_orchestration_session_uuid=self.orchestration_event.internal_orchestration_session_uuid,
             access_token=self.orchestration_event.access_token,
             organization_id=self.orchestration_event.organization.organization_id,
         )
@@ -239,31 +239,33 @@ class FunctionBackend:
                 f.write(resp.content)
             logger.info(f"  Downloaded: {file_name} -> {dest}")
 
-    def _upload_result(self, session_uuid: str, output_path: str) -> str:
+    def _upload_result(self, output_path: str) -> str:
         """Upload the result Excel file and return its URL."""
+        import io
+
         file_name = os.path.basename(output_path)
 
         with open(output_path, "rb") as f:
             file_bytes = f.read()
 
+        file_obj = io.BytesIO(file_bytes)
+        file_obj.name = file_name
+
         result = files_api_manager.call(
             "upload_file",
-            session_uuid=session_uuid,
-            file_name=file_name,
-            file_content=file_bytes,
-            mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            file=file_obj,
+            orchestration_session_uuids=[self.orchestration_event.orchestration_session_uuid],
+            internal_orchestration_session_uuid=self.orchestration_event.internal_orchestration_session_uuid,
+            shared=False,
             access_token=self.orchestration_event.access_token,
             organization_id=self.orchestration_event.organization.organization_id,
         )
 
-        if hasattr(result, "status_code"):
-            if result.status_code != 200:
-                raise ValueError(f"File upload failed: {result.status_code}")
-            file_data = result.json()
-        else:
-            file_data = result
+        file_url = result.get("file_url")
+        if not file_url:
+            raise RuntimeError(f"Failed to get file URL for: {file_name}")
 
-        return file_data["file_url"]
+        return file_url
 
     def _extract_tool_args(self) -> Dict[str, Any]:
         """Extract tool call arguments from orchestration event."""
