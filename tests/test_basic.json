@@ -6,17 +6,8 @@
   "widget_params": {},
   "prompt": "Ejecuta la conciliación de comisiones en modo test",
   "event_type": "function_call",
-  "extra_params": {
-    "tool_calls": [
-      {
-        "id": "test-001",
-        "name": "ConciliacionComisionesDaFn",
-        "args": {
-          "test_mode": true
-        }
-      }
-    ]
-  },
+  "extra_params": {},
+  "files": [],
   "metadata": {
     "description": "Test conciliation with bundled test data (test_mode)",
     "expected_status": "success"
