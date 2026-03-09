@@ -8,8 +8,8 @@ function:
     de Andes Motors. Recibe archivos Excel de ventas y pagos, cruza por
     VIN (exacto + fuzzy), compara montos de bonos, y genera un reporte
     Excel detallado. Marcas: MAXUS, JETOUR, KARRY, KAIYI.
-  timeout: 300
-  memory_size: 1024
+  timeout: 900
+  memory_size: 2048
 
   layers:
     - foundationMinimal
