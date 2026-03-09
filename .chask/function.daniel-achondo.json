@@ -1,0 +1,8 @@
+{
+	"function_uuid": "7c1fcbb8-198f-48ba-a3af-fe01551f029f",
+	"organization_id": "5497a64c-03a2-4734-87f3-c6b6592dc39d",
+	"last_published_at": "2026-03-09T10:40:19.638Z",
+	"function_arn": "ConciliacionComisionesDaFn-a3affe01551f029f",
+	"function_name": "ConciliacionComisionesDaFn",
+	"git_ref": "main"
+}
