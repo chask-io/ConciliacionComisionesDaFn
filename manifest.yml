@@ -1,0 +1,40 @@
+function:
+  name: ConciliacionComisionesDaFn
+  runtime: python3.12
+  handler: handler.lambda_handler
+  description: |
+    Realiza la conciliación de comisiones entre las ventas de vehículos
+    de Daniel Achondo (exportadas desde AutoPro) y los pagos recibidos
+    de Andes Motors. Recibe archivos Excel de ventas y pagos, cruza por
+    VIN (exacto + fuzzy), compara montos de bonos, y genera un reporte
+    Excel detallado. Marcas: MAXUS, JETOUR, KARRY, KAIYI.
+  timeout: 300
+  memory_size: 1024
+
+  layers:
+    - foundationMinimal
+    - foundationApi
+    - custom/excel_layer
+
+  parameters:
+    required:
+      - name: file_uuids
+        type: array
+        description: |
+          Array de UUIDs de archivos Excel subidos por el usuario.
+          Debe incluir archivos de ventas mensuales y el archivo de comisiones.
+
+    optional:
+      - name: fuzzy_threshold
+        type: integer
+        description: Umbral de similitud para matching fuzzy de VIN (default 85)
+        default: 85
+      - name: tolerance
+        type: number
+        description: Tolerancia en pesos para considerar pago completo (default 1000)
+        default: 1000
+
+  widget:
+    enabled: false
+    type: dynamic_widget
+    params: []
