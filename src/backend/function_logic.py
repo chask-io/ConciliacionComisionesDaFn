@@ -63,7 +63,7 @@ class FunctionBackend:
             os.makedirs(pagos_dir, exist_ok=True)
 
             # Download files from session
-            session_uuid = str(self.orchestration_event.session.session_id)
+            session_uuid = str(self.orchestration_event.orchestration_session_uuid)
             self._download_files(session_uuid, file_uuids, ventas_dir, pagos_dir)
 
             # Find the pagos file
